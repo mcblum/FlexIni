@@ -15,6 +15,7 @@ tmp_directory="/tmp"
 
 declare -gA ini_associations
 declare -gA ini_unsaved_changes
+declare -gA ini_loaded
 
 # @private private_flex_ini_mark_as_changed
 # --
@@ -30,6 +31,28 @@ private_flex_ini_mark_as_changed() {
 private_flex_ini_mark_as_unchanged() {
   local ini_identifier=$(private_flex_ini_format_id "$1")
   ini_unsaved_changes["$ini_identifier"]=false
+}
+
+# @private private_flex_ini_mark_as_loaded
+# --
+# Marks an ini array as already loaded
+private_flex_ini_mark_as_loaded() {
+  local ini_identifier=$(private_flex_ini_format_id "$1")
+  ini_loaded["$ini_identifier"]=true
+}
+
+# @private private_flex_ini_has_been_loaded
+# --
+# Returns 0 if the array has already been loaded,
+# returns 1 if it has not.
+private_flex_ini_has_been_loaded() {
+  local ini_identifier=$(private_flex_ini_format_id "$1")
+
+  if [ "${ini_loaded[$ini_identifier]}" == "true" ]; then
+    return 0
+  else
+    return 1
+  fi
 }
 
 # @private private_flex_ini_format_id
@@ -101,6 +124,15 @@ private_flex_ini_init() {
 flex_ini_load() {
   local ini_file="$1"
   local ini_identifier=$(private_flex_ini_format_id "$2")
+  local force_reload="$3"
+
+  if [ "$force_reload" != "true" ] && private_flex_ini_has_been_loaded "$ini_identifier"; then
+    return 0
+  fi
+
+  if [ "$force_reload" == "true" ] && private_flex_ini_has_been_loaded "$ini_identifier"; then
+    flex_ini_clear "$ini_identifier"
+  fi
 
   private_flex_ini_init "$ini_file" "$ini_identifier"
   local ini=$(private_flex_ini_get_array_name "$ini_identifier")
@@ -127,6 +159,39 @@ flex_ini_load() {
   done <"$ini_file"
 
   private_flex_ini_mark_as_unchanged "$ini_identifier"
+  private_flex_ini_mark_as_loaded "$ini_identifier"
+}
+
+# @public flex_ini_reload
+# --
+# Reload an already-loaded ini ID. Please note, if you have not, in
+# fact, already loaded the ini ID, this function will fail.
+flex_ini_reload() {
+  local ini_identifier=$(private_flex_ini_format_id "$1")
+  local destination_ini_path=$(private_get_ini_file_path "$ini_identifier")
+
+  if [ -z "$destination_ini_path" ]; then
+    echo "[ Flex INI Error ] No INI filepath could be found from which to reload. Are you sure you loaded the config file for ${ini_identifier}?"
+  fi
+
+  flex_ini_clear "$ini_identifier"
+
+  flex_ini_load "$destination_ini_path" "$ini_identifier"
+}
+
+# @public flex_ini_clear
+# -- 
+# Clears an ini ID completely from our loaded configs. You
+# probably shouldn't need to use this, but it could be helpful
+# during debugging.
+flex_ini_clear() {
+  local ini_identifier=$(private_flex_ini_format_id "$1")
+
+  unset ini_unsaved_changes["$ini_identifier"]
+  unset ini_loaded["$ini_identifier"]
+
+  local current_array_name=$(private_flex_ini_get_array_name "$ini_identifier")
+  unset "$current_array_name"
 }
 
 # @public flex_ini_get
@@ -204,9 +269,9 @@ flex_ini_save() {
 
     # pre-create the file if it doesn't exist just to make sure we can
     if [ ! -f "$destination_ini_path" ]; then
-      touch "$destination_ini_path" ||
-        echo "Error -- unable to create file specified at $destination_ini_path" &&
-        return 1
+      touch "$destination_ini_path" \
+        || echo "Error -- unable to create file specified at $destination_ini_path" \
+        && return 1
     fi
   else
     local destination_ini_path="$default_destination_ini_path"
@@ -268,7 +333,8 @@ flex_ini_save_as() {
 
 # @public flex_ini_has_unsaved
 # --
-# Returns 0 if the array has unsaved changes.
+# Returns 0 if the array has unsaved changes,
+# returns 1 if it does not.
 flex_ini_has_unsaved() {
   local ini_identifier=$(private_flex_ini_format_id "$1")
   local has_unsaved="${ini_unsaved_changes["$ini_identifier"]}"

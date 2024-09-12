@@ -26,11 +26,23 @@ installed = false
 installed = true
 ```
 
-### Load one or more ini files
+### Load one or more ini files:
 
 ```
 flex_ini_load "./app/global_settings.ini" "global"
 flex_ini_load "./app/tenants/big-corp/settings.ini" "big-corp"
+```
+
+### Reload a previously-loaded ini file:
+
+```
+flex_ini_reload "your_ini_id"
+```
+
+### Clear an ini id from our loaded config:
+
+```
+flex_ini_clear "your_ini_id"
 ```
 
 ### Get a value:
