@@ -103,7 +103,8 @@ private_flex_ini_format_id() {
   local default_ini_array_name="default"
   local ini_identifier="${1:-$default_ini_array_name}"
 
-  echo "${ini_identifier//+( )/_}"
+  local formatted="${ini_identifier// /_}"
+  echo "$formatted" | tr - _
 }
 
 # @private private_flex_ini_get_array_name
