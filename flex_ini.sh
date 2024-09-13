@@ -338,7 +338,7 @@ flex_ini_save() {
   local current_section=""
   local has_free_keys=false
 
-  local ini_file=$(mktemp "${tmp_directory}/ini-tmp")
+  local ini_file=$(mktemp "${tmp_directory}/flexini.XXXXXX")
 
   for key in $(flex_ini_keys "$ini_identifier"); do
     [[ $key == *.* ]] && continue
