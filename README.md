@@ -115,6 +115,16 @@ flex_ini_keys "your_ini_id"
 
 If you want to override a default setting, you may change these or, probably better, change them when your script initializes after you source flex_ini.sh.
 
+### Auto-save on changes
+
+This setting affects whether any change operations will also trigger a save operation.
+This can be helpful in cases where you know you're going to be updating only a setting or two, but should be avoided in the case where you are going to be doing tons and tons of updates.
+This will be less critical when the bulk update feature is ready.
+
+```
+auto_save_on_changes=false
+```
+
 ### Back up saved changes
 
 This setting affects whether we make a your_settings.ini.bak file before we replace what's there.
