@@ -26,3 +26,18 @@ expect() {
         fail "Expected value to be '$expected', but received '$received'"
     fi
 }
+
+expect_contains() {
+    local received="$1"
+    local str="$2"
+
+    if [[ ! $received == *"$str"* ]]; then
+        fail "We expected '${received}' to contain '${str}' but it did not."
+    fi
+}
+
+expect_error() {
+    if [ $? == 0 ]; then
+        fail "We expected an error but none was found"
+    fi
+}
