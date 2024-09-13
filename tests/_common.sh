@@ -36,6 +36,14 @@ expect_contains() {
     fi
 }
 
+expect_file_exists() {
+    local filepath="$1"
+
+    if [ ! -f "$filepath" ]; then
+        fail "We expected the file at '${filepath}' to exist, but it did not."
+    fi
+}
+
 expect_error() {
     if [ $? == 0 ]; then
         fail "We expected an error but none was found"

@@ -115,6 +115,15 @@ flex_ini_keys "your_ini_id"
 
 If you want to override a default setting, you may change these or, probably better, change them when your script initializes after you source flex_ini.sh.
 
+## Auto-create on load
+
+This setting controls whether we attempt to create an ini file when it is loaded but does not-yet exist on the filesystem.
+Most of the time this is probably desirable for ease of use.
+
+```
+auto_create_ini_on_load=true
+```
+
 ### Auto-save on changes
 
 This setting affects whether any change operations will also trigger a save operation.

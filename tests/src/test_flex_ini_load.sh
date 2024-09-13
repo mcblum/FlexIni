@@ -1,3 +1,7 @@
+test_flex_ini_load_before() {
+    auto_create_ini_on_load=false
+}
+
 test_flex_ini_load() {
     filepath_one="${testing_storage_dir}/test_one.ini"
     filepath_two="${testing_storage_dir}/test_two.ini"
@@ -24,4 +28,23 @@ test_flex_ini_load() {
 
     flex_ini_update "my" "my" "test_two_id"
     flex_ini_save "test_two_id"
+
+    # Test auto-create
+    auto_create_ini_on_load=true
+
+    autocreate_filepath="${testing_storage_dir}/auto_create.ini"
+
+    flex_ini_load "$autocreate_filepath" "autocreate" || fail "There was a failure in auto-creation"
+    expect_file_exists "$autocreate_filepath"
+    flex_ini_update "auto" "create" "autocreate"
+    flex_ini_save "autocreate" || fail "Could not save auto-created file"
+
+    flex_ini_reset
+
+    flex_ini_load "$autocreate_filepath" "autocreate"
+    expect "$(flex_ini_get "auto" "autocreate")" "create"
+}
+
+test_flex_ini_load_before() {
+    auto_create_ini_on_load=true
 }

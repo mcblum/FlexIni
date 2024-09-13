@@ -4,6 +4,7 @@
 # within your scripts, whatever works best for
 # your use case.
 
+auto_create_ini_on_load=true
 auto_save_on_changes=false
 back_up_changes_on_save=true
 back_up_changes_on_save_as=false
@@ -18,9 +19,18 @@ declare -gA ini_loaded
 # It's best to not call/modify these directly from your codebase
 # unless you know what you're doing!
 
+# @private private_flex_ini_error
+# --
+# Helper method to write consistent error logs
+private_flex_ini_error() {
+  local msg="$1"
+
+  echo "[ FlexIni Error ] $msg"
+}
+
 # @private private_flex_ini_mark_as_changed
 # --
-# Marks an ini array as changed
+# Marks an ini array as changed.
 private_flex_ini_mark_as_changed() {
   local ini_identifier=$(private_flex_ini_format_id "$1")
   ini_unsaved_changes["$ini_identifier"]=true
@@ -28,7 +38,7 @@ private_flex_ini_mark_as_changed() {
 
 # @private private_flex_ini_mark_as_unchanged
 # --
-# Marks an ini array as unchanged
+# Marks an ini array as unchanged.
 private_flex_ini_mark_as_unchanged() {
   local ini_identifier=$(private_flex_ini_format_id "$1")
   ini_unsaved_changes["$ini_identifier"]=false
@@ -43,7 +53,7 @@ private_flex_ini_required() {
   local v="$2"
 
   if [ -z "$v" ]; then
-    echo "[ FlexIni Error ] value $k is required but was not provided"
+    private_flex_ini_error "value $k is required but was not provided"
     return 1
   fi
 }
@@ -56,14 +66,14 @@ private_flex_ini_require_loaded() {
   local ini_identifier="$1"
 
   if ! private_flex_ini_has_been_loaded "$ini_identifier"; then
-    echo "[ FlexIni Error ] the ini id $ini_identifier has not-yet been loaded"
+    private_flex_ini_error "the ini id $ini_identifier has not-yet been loaded"
     return 1
   fi
 }
 
 # @private private_flex_ini_mark_as_loaded
 # --
-# Marks an ini array as already loaded
+# Marks an ini array as already loaded.
 private_flex_ini_mark_as_loaded() {
   local ini_identifier=$(private_flex_ini_format_id "$1")
   ini_loaded["$ini_identifier"]=true
@@ -88,7 +98,7 @@ private_flex_ini_has_been_loaded() {
 # @private private_flex_ini_format_id
 # --
 # Format the supplied ini id to make sure it's
-# compatible with naming an array
+# compatible with naming an array.
 private_flex_ini_format_id() {
   local default_ini_array_name="default"
   local ini_identifier="${1:-$default_ini_array_name}"
@@ -98,7 +108,7 @@ private_flex_ini_format_id() {
 
 # @private private_flex_ini_get_array_name
 # --
-# Get the name of the array based on the ini id
+# Get the name of the array based on the ini id.
 private_flex_ini_get_array_name() {
   local ini_identifier=$(private_flex_ini_format_id "$1")
   local ini_name="${ini_identifier}_ini"
@@ -108,7 +118,7 @@ private_flex_ini_get_array_name() {
 
 # @private private_get_ini_file_path
 # --
-# Get the file path for a specific ini id
+# Get the file path for a specific ini id.
 private_get_ini_file_path() {
   local ini_identifier=$(private_flex_ini_format_id "$1")
 
@@ -133,10 +143,20 @@ private_flex_ini_init() {
 
   local ini=$(private_flex_ini_get_array_name "$ini_identifier")
 
-  declare -gA "$ini" ||
-    echo "FAILED $ini"
+  declare -gA "$ini"
 
   ini_associations["$ini_identifier"]="$ini_file"
+}
+
+# @private private_flex_ini_create
+# --
+# Create an ini file at the specified path.
+private_flex_ini_create() {
+  local ini_file="$1"
+  
+  private_flex_ini_required "ini_file" "$ini_file" || return 1
+
+  touch "$ini_file" || return 1
 }
 
 # Public Functions
@@ -158,13 +178,19 @@ flex_ini_load() {
   fi
 
   if [ "$force_reload" == "true" ] && private_flex_ini_has_been_loaded "$ini_identifier"; then
-    echo "clearign"
     flex_ini_clear "$ini_identifier"
   fi
 
   if [ ! -f "$ini_file" ]; then
-    echo "[ Flex INI Error ] Ini file not found at ${ini_file}"
-    return 1
+    if [ "$auto_create_ini_on_load" == "true" ]; then
+      if ! private_flex_ini_create "$ini_file"; then
+        flex_ini_error "ini file could not be auto-created at ${ini_file}"
+        return 1  
+      fi
+    else  
+      flex_ini_error "ini file not found at ${ini_file} and auto_create_ini_on_load was not 'true' so we did not try to create it"
+      return 1
+    fi
   fi
 
   private_flex_ini_init "$ini_file" "$ini_identifier"
