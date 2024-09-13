@@ -93,6 +93,12 @@ flex_ini_save_as "/path/to/save/as/file.ini" "your_ini_id"
 flex_ini_has_unsaved "your_ini_id"
 ```
 
+### Reset all of the currently-loaded data (but don't delete the files):
+
+```
+flex_ini_reset
+```
+
 ### Show all the values of a particular array:
 
 ```

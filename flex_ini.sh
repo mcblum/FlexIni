@@ -220,6 +220,8 @@ flex_ini_reload() {
 flex_ini_clear() {
   local ini_identifier=$(private_flex_ini_format_id "$1")
 
+  private_flex_ini_require_loaded "$ini_identifier" || return 1
+
   unset ini_unsaved_changes["$ini_identifier"]
   unset ini_loaded["$ini_identifier"]
 
@@ -383,6 +385,8 @@ flex_ini_save_as() {
   local override_path="$1"
   local ini_identifier=$(private_flex_ini_format_id "$2")
 
+  private_flex_ini_require_loaded "$ini_identifier" || return 1
+
   flex_ini_save "$ini_identifier" "$override_path"
 }
 
@@ -392,6 +396,7 @@ flex_ini_save_as() {
 # returns 1 if it does not.
 flex_ini_has_unsaved() {
   local ini_identifier=$(private_flex_ini_format_id "$1")
+  
   private_flex_ini_require_loaded "$ini_identifier" || return 1
 
   local has_unsaved="${ini_unsaved_changes["$ini_identifier"]}"
