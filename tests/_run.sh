@@ -1,7 +1,7 @@
 echo "Running tests for FlexIni..."
 
 test_parent_dir="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
-test_storage_dir="$test_parent_dir/.tests"
+test_storage_dir="$test_parent_dir/.storage"
 echo ""
 
 test_suites=()
