@@ -152,6 +152,15 @@ By default, the file you specify during a save-as operation isn't backed up if i
 back_up_changes_on_save_as=false
 ```
 
+### Reassign file permissions when possible
+
+Sometimes you might need to run FlexIni as root but you may want to keep the file permissions of the ini the same.
+Update this to true to make the script attempt to re-assign the original owner/group.
+
+```
+reassign_file_permissions_when_possible=false
+```
+
 ### Temp Directory
 
 This allows you to override the directory used to store the temp files we make before saving.
