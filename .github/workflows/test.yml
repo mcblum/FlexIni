@@ -1,0 +1,14 @@
+name: Test
+run-name: Testing FlexIni scripts 🚀
+on:
+  pull_request:
+    branches: ["main"]
+  push
+jobs:
+  Test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - run: ./tests/_run.sh
+      - run: echo "🍏 This job's status is ${{ job.status }}."
