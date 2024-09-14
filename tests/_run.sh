@@ -19,11 +19,11 @@ for t in "${test_suites[@]}"; do
     source ./tests/src/$t.sh
     echo ""
     echo "[ $t ] running..."
-    ${t}_before >/dev/null 2>&1 && echo "[ $t ] after fn executed" || true
+    ${t}_before >/dev/null 2>&1 && echo "[ $t ] before method found + executed" || true
     $t &&
         echo "[ $t ] passed" ||
         fail "Test suite $t has failed"
-    ${t}_after >/dev/null 2>&1 && echo "[ $t ] after fn found + executed" || true
+    ${t}_after >/dev/null 2>&1 && echo "[ $t ] after method found + executed" || true
     clean
     flex_ini_reset
     echo ""

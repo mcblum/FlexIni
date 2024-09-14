@@ -1,6 +1,5 @@
 test_flex_ini_update() {
-    filepath_one="${testing_storage_dir}/test_one.ini"
-    touch "$filepath_one"
+    local filepath_one=$(create_ini)
     flex_ini_load "$filepath_one"
     
     flex_ini_update "hey" "now"
@@ -26,20 +25,18 @@ test_flex_ini_update() {
     # Reset, set autosave, make sure it works
     flex_ini_reset
     rm -f "$filepath_one"
-    touch "$filepath_one"
+    
+    local filepath_two=$(create_ini)
 
     auto_save_on_changes=true
-    flex_ini_load "$filepath_one"
+    flex_ini_load "$filepath_two"
     flex_ini_update "auto" "save"
     # Don't call save here, just reset
     flex_ini_reset
 
     # Load the file again, expect it to have saved
-    flex_ini_load "$filepath_one"
+    flex_ini_load "$filepath_two"
     expect "$(flex_ini_get "auto")" "save"
-
-    # @after
-    auto_save_on_changes=true
 }
 
 test_flex_ini_update_after() {

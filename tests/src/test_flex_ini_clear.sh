@@ -1,8 +1,6 @@
 test_flex_ini_clear() {
-    filepath_one="${testing_storage_dir}/test_one.ini"
-    filepath_two="${testing_storage_dir}/test_two.ini"
-    touch "$filepath_one"
-    touch "$filepath_two"
+    local filepath_one=$(create_ini)
+    local filepath_two=$(create_ini)
 
     # Load each file, one with a k and one without
     flex_ini_load "$filepath_one"

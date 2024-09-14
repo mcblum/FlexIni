@@ -8,6 +8,7 @@ auto_create_ini_on_load=true
 auto_save_on_changes=false
 back_up_changes_on_save=true
 back_up_changes_on_save_as=false
+reassign_file_permissions_when_possible=false
 tmp_directory="/tmp"
 
 declare -gA ini_associations
@@ -336,7 +337,7 @@ flex_ini_delete() {
 # --
 # Save the values in the array back to the correct file.
 # If using the file you specified when you loaded the ini
-# config, do not pass a second argument.
+# config.
 flex_ini_save() {
   local ini_identifier=$(private_flex_ini_format_id "$1")
   local override_path="$2"
@@ -346,20 +347,38 @@ flex_ini_save() {
 
   # The save-as logic path first
   if [ -n "$override_path" ]; then
-    local destination_ini_path="$override_path"
-
-    local back_up_changes_on_save=${back_up_changes_on_save_as}
-    local is_save_as_operation=true
-
-    # pre-create the file if it doesn't exist just to make sure we can
-    if [ ! -f "$destination_ini_path" ]; then
-      touch "$destination_ini_path" \
-        || echo "Error -- unable to create file specified at $destination_ini_path" \
-        && return 1
+    # pre-create the file if it doesn't exist just to make sure we
+    # are actually able to create a file there.
+    if [ ! -f "$override_path" ]; then
+      if ! touch "$override_path"; then
+        private_flex_ini_error "unable to create file specified at $override_path"
+        return 1
+      fi
     fi
+
+    # set the destination ini path to whichever new path was specified
+    local destination_ini_path="$override_path"
+    # use the val from 'save as' to determine whether to back up
+    local should_back_up_before_save="${back_up_changes_on_save_as}"
+    local is_save_as_operation=true
   else
+    # set the destination ini path to the one specified on load
     local destination_ini_path="$default_destination_ini_path"
+    # use the val from 'save' to determine whether to back up
+    local should_back_up_before_save="${back_up_changes_on_save}"
     local is_save_as_operation=false
+  fi
+
+  # If param is true, then fetch the user/group from the current ini
+  # file and attempt to re-assign ownership when file is saved if
+  # the current user is different from the owner of the file
+  if [ "$reassign_file_permissions_when_possible" == "true" ]; then
+    local file_owner=$(stat --format '%U' "${destination_ini_path}")
+    local file_group=$(stat --format '%G' "${destination_ini_path}")
+    local current_user=$(echo "$USER")
+    if [ "$file_owner" != "$current_user" ]; then
+      local should_reassign_file_permissions=true
+    fi
   fi
 
   local current_section=""
@@ -391,12 +410,22 @@ flex_ini_save() {
   done
 
   # Back up the destination ini file if specified
-  if [ "$back_up_changes_on_save" == "true" ]; then
-    cp -f "$destination_ini_path" "${destination_ini_path}.bak"
+  if [ "$should_back_up_before_save" == "true" ]; then
+    cp -f "$destination_ini_path" "${destination_ini_path}.bak" ||
+      private_flex_ini_error "could not make the backup copy of the ini file at ${destination_ini_path}"
   fi
 
   # Replace the destination ini file with the tmp file
-  mv -f "$ini_file" "$destination_ini_path"
+  if ! mv -f "$ini_file" "$destination_ini_path"; then
+    private_flex_ini_error "could not move tmp ini file to its destination at ${destination_ini_path} -- data was not saved to disk"
+    return 1
+  fi
+
+  # Try to update the permissions of the file, if set
+  if [ "$should_reassign_file_permissions" == "true" ]; then
+    chown "${file_owner}":"${file_group}" "${destination_ini_path}" ||
+      private_flex_ini_error "our attempt to reassign file permissions to '${file_owner}:${file_group} failed for file at ${destination_ini_path}"
+  fi
 
   # Only mark the ini as unchanged if we saved it to
   # the original file.
@@ -414,7 +443,7 @@ flex_ini_save_as() {
 
   private_flex_ini_require_loaded "$ini_identifier" || return 1
 
-  flex_ini_save "$ini_identifier" "$override_path"
+  flex_ini_save "$ini_identifier" "$override_path" || return 1
 }
 
 # @public flex_ini_has_unsaved

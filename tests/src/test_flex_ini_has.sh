@@ -1,6 +1,5 @@
 test_flex_ini_has() {
-    filepath_one="${testing_storage_dir}/test_one.ini"
-    touch "$filepath_one"
+    local filepath_one=$(create_ini)
     flex_ini_load "$filepath_one"
 
     # It should not yet be there

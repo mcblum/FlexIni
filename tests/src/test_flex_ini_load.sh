@@ -3,10 +3,8 @@ test_flex_ini_load_before() {
 }
 
 test_flex_ini_load() {
-    filepath_one="${testing_storage_dir}/test_one.ini"
-    filepath_two="${testing_storage_dir}/test_two.ini"
-    touch "$filepath_one"
-    touch "$filepath_two"
+    local filepath_one=$(create_ini)
+    local filepath_two=$(create_ini)
 
     # Load each file, one with a key and one without
     flex_ini_load "$filepath_one"
@@ -32,7 +30,7 @@ test_flex_ini_load() {
     # Test auto-create
     auto_create_ini_on_load=true
 
-    autocreate_filepath="${testing_storage_dir}/auto_create.ini"
+    local autocreate_filepath="${testing_storage_dir}/auto_create.ini"
 
     flex_ini_load "$autocreate_filepath" "autocreate" || fail "There was a failure in auto-creation"
     expect_file_exists "$autocreate_filepath"
@@ -45,6 +43,6 @@ test_flex_ini_load() {
     expect "$(flex_ini_get "auto" "autocreate")" "create"
 }
 
-test_flex_ini_load_before() {
+test_flex_ini_load_after() {
     auto_create_ini_on_load=true
 }
