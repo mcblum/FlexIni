@@ -1,4 +1,3 @@
-#!/opt/homebrew/bin/bash
 echo "Running tests for FlexIni..."
 
 testing_storage_dir="$PWD/.tests"
