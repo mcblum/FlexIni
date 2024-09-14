@@ -30,7 +30,7 @@ test_flex_ini_load() {
     # Test auto-create
     auto_create_ini_on_load=true
 
-    local autocreate_filepath="${testing_storage_dir}/auto_create.ini"
+    local autocreate_filepath="${test_storage_dir}/auto_create.ini"
 
     flex_ini_load "$autocreate_filepath" "autocreate" || fail "There was a failure in auto-creation"
     expect_file_exists "$autocreate_filepath"

@@ -1,21 +1,22 @@
 echo "Running tests for FlexIni..."
 
-testing_storage_dir="$PWD/.tests"
+test_parent_dir="$( cd -- "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P )"
+test_storage_dir="$test_parent_dir/.tests"
 echo ""
 
 test_suites=()
-cd ./tests/src
+cd $test_parent_dir/src
 for f in *; do
     fn_name="${f/.sh/''}"
     test_suites+=("$fn_name")
 done
 cd ../..
 
-source ./tests/_common.sh
+source $test_parent_dir/_common.sh
 
 for t in "${test_suites[@]}"; do
     init
-    source ./tests/src/$t.sh
+    source $test_parent_dir/src/$t.sh
     echo ""
     echo "[ $t ] running..."
     ${t}_before >/dev/null 2>&1 && echo "[ $t ] before method found + executed" || true

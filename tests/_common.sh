@@ -1,6 +1,6 @@
 # Include our script
-source ./flex_ini.sh
-source ./tests/_assertions.sh
+source $test_parent_dir/../flex_ini.sh
+source $test_parent_dir/_assertions.sh
 
 fail() {
     local msg="$1"
@@ -9,19 +9,19 @@ fail() {
 }
 
 init() {
-    mkdir -p "$testing_storage_dir"
+    mkdir -p "$test_storage_dir"
 }
 
 create_ini() {
-    filepath_one="${testing_storage_dir}/$$.ini"
+    filepath_one="${test_storage_dir}/$$.ini"
     touch "$filepath_one"
 
     echo "$filepath_one"
 }
 
 clean() {
-    if [ -z "$testing_storage_dir" ]; then
+    if [ -z "$test_storage_dir" ]; then
         fail "Testing dir variable undefined!!! Extremely unsafe operation prevented"
     fi
-    rm -rf "${testing_storage_dir}"
+    rm -rf "${test_storage_dir}"
 }

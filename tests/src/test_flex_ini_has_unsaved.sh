@@ -11,7 +11,7 @@ test_flex_ini_has_unsaved() {
     expect_return_code 1 "flex_ini_has_unsaved"
 
     flex_ini_update "unsaved" "changed_again"
-    local save_as_path="${testing_storage_dir}/$$"
+    local save_as_path="${test_storage_dir}/$$"
     flex_ini_save_as "$save_as_path" || fail "Could not save as"
     expect_success "flex_ini_has_unsaved"
     expect_return_code 0 "flex_ini_has_unsaved"

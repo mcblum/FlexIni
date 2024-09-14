@@ -14,7 +14,7 @@ test_flex_ini_save() {
     # Update the value of 'save_as' in the ini array
     # but only save it as, leaving the original untouched.
     flex_ini_update "save_as" "test"
-    local save_as_loc="${testing_storage_dir}/$$"
+    local save_as_loc="${test_storage_dir}/$$"
     flex_ini_save_as "$save_as_loc"
 
     flex_ini_reset
