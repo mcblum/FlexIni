@@ -1,3 +1,5 @@
+# shellcheck disable=SC2148
+
 # Defaults
 # --
 # You may change these here or overwrite them
@@ -33,7 +35,9 @@ private_flex_ini_error() {
 # --
 # Marks an ini array as changed.
 private_flex_ini_mark_as_changed() {
-  local ini_identifier=$(private_flex_ini_format_id "$1")
+  local ini_identifier
+  ini_identifier=$(private_flex_ini_format_id "$1")
+
   ini_unsaved_changes["$ini_identifier"]=true
 }
 
@@ -41,7 +45,9 @@ private_flex_ini_mark_as_changed() {
 # --
 # Marks an ini array as unchanged.
 private_flex_ini_mark_as_unchanged() {
-  local ini_identifier=$(private_flex_ini_format_id "$1")
+  local ini_identifier
+  ini_identifier=$(private_flex_ini_format_id "$1")
+
   ini_unsaved_changes["$ini_identifier"]=false
 }
 
@@ -76,7 +82,9 @@ private_flex_ini_require_loaded() {
 # --
 # Marks an ini array as already loaded.
 private_flex_ini_mark_as_loaded() {
-  local ini_identifier=$(private_flex_ini_format_id "$1")
+  local ini_identifier
+  ini_identifier=$(private_flex_ini_format_id "$1")
+
   ini_loaded["$ini_identifier"]=true
 }
 
@@ -85,7 +93,9 @@ private_flex_ini_mark_as_loaded() {
 # Returns 0 if the array has already been loaded,
 # returns 1 if it has not.
 private_flex_ini_has_been_loaded() {
-  local ini_identifier=$(private_flex_ini_format_id "$1")
+  local ini_identifier
+  ini_identifier=$(private_flex_ini_format_id "$1")
+
 
   local loaded="${ini_loaded[$ini_identifier]}"
   
@@ -112,7 +122,9 @@ private_flex_ini_format_id() {
 # --
 # Get the name of the array based on the ini id.
 private_flex_ini_get_array_name() {
-  local ini_identifier=$(private_flex_ini_format_id "$1")
+  local ini_identifier
+  ini_identifier=$(private_flex_ini_format_id "$1")
+
   local ini_name="${ini_identifier}_ini"
 
   echo "$ini_name"
@@ -122,7 +134,9 @@ private_flex_ini_get_array_name() {
 # --
 # Get the file path for a specific ini id.
 private_get_ini_file_path() {
-  local ini_identifier=$(private_flex_ini_format_id "$1")
+  local ini_identifier
+  ini_identifier=$(private_flex_ini_format_id "$1")
+
 
   local FILE_PATH="${ini_associations[$ini_identifier]}"
 
@@ -141,9 +155,11 @@ private_get_ini_file_path() {
 # loaded when you try to reference a particular id.
 private_flex_ini_init() {
   local ini_file="$1"
-  local ini_identifier=$(private_flex_ini_format_id "$2")
+  local ini_identifier
+  ini_identifier=$(private_flex_ini_format_id "$2")
 
-  local ini=$(private_flex_ini_get_array_name "$ini_identifier")
+  local ini
+  ini=$(private_flex_ini_get_array_name "$ini_identifier")
 
   declare -gA "$ini"
 
@@ -172,7 +188,9 @@ private_flex_ini_create() {
 # current values in your ini file and populate the array.
 flex_ini_load() {
   local ini_file="$1"
-  local ini_identifier=$(private_flex_ini_format_id "$2")
+  local ini_identifier
+  ini_identifier=$(private_flex_ini_format_id "$2")
+
   local force_reload="${3:-false}"
 
   if [ "$force_reload" != "true" ] && private_flex_ini_has_been_loaded "$ini_identifier"; then
@@ -196,7 +214,8 @@ flex_ini_load() {
   fi
 
   private_flex_ini_init "$ini_file" "$ini_identifier"
-  local ini=$(private_flex_ini_get_array_name "$ini_identifier")
+  local ini
+  ini=$(private_flex_ini_get_array_name "$ini_identifier")
 
   local section=""
   local key=""
@@ -228,8 +247,11 @@ flex_ini_load() {
 # Reload an already-loaded ini ID. Please note, if you have not, in
 # fact, already loaded the ini ID, this function will fail.
 flex_ini_reload() {
-  local ini_identifier=$(private_flex_ini_format_id "$1")
-  local destination_ini_path=$(private_get_ini_file_path "$ini_identifier")
+  local ini_identifier
+  ini_identifier=$(private_flex_ini_format_id "$1")
+
+  local destination_ini_path
+  destination_ini_path=$(private_get_ini_file_path "$ini_identifier")
 
   if [ -z "$destination_ini_path" ]; then
     echo "[ Flex INI Error ] No INI filepath could be found from which to reload. Are you sure you loaded the config file for ${ini_identifier}?"
@@ -246,14 +268,18 @@ flex_ini_reload() {
 # probably shouldn't need to use this, but it could be helpful
 # during debugging.
 flex_ini_clear() {
-  local ini_identifier=$(private_flex_ini_format_id "$1")
+  local ini_identifier
+  ini_identifier=$(private_flex_ini_format_id "$1")
+
 
   private_flex_ini_require_loaded "$ini_identifier" || return 1
 
-  unset ini_unsaved_changes["$ini_identifier"]
-  unset ini_loaded["$ini_identifier"]
+  unset 'ini_unsaved_changes[$ini_identifier]'
+  unset 'ini_loaded[$ini_identifier]'
 
-  local current_array_name=$(private_flex_ini_get_array_name "$ini_identifier")
+  local current_array_name
+  current_array_name=$(private_flex_ini_get_array_name "$ini_identifier")
+
   unset "$current_array_name"
 }
 
@@ -262,13 +288,19 @@ flex_ini_clear() {
 # Fetches a value from the specified ini array.
 flex_ini_get() {
   local key="$1"
-  local ini_identifier=$(private_flex_ini_format_id "$2")
-  local array_name=$(private_flex_ini_get_array_name "$ini_identifier")
+  local ini_identifier
+  ini_identifier=$(private_flex_ini_format_id "$2")
+
+  local array_name
+  array_name=$(private_flex_ini_get_array_name "$ini_identifier")
 
   private_flex_ini_required "key" "$key" || return 1
 
+  # shellcheck disable=SC2016
   local name_var='${'$array_name'['$key']}'
-  local value=$(eval echo "$name_var")
+  local value
+  value=$(eval echo "$name_var")
+
   echo "$value"
 }
 
@@ -277,7 +309,8 @@ flex_ini_get() {
 # Returns 0 if the key exists, 1 if it does not.
 flex_ini_has() {
   local key="$1"
-  local ini_identifier=$(private_flex_ini_format_id "$2")
+  local ini_identifier
+  ini_identifier=$(private_flex_ini_format_id "$2")
 
   private_flex_ini_required "key" "$key" || return 1
   private_flex_ini_require_loaded "$ini_identifier" || return 1
@@ -293,8 +326,11 @@ flex_ini_has() {
 flex_ini_update() {
   local key="$1"
   local value="$2"
-  local ini_identifier=$(private_flex_ini_format_id "$3")
-  local array_name=$(private_flex_ini_get_array_name "$ini_identifier")
+  local ini_identifier
+  ini_identifier=$(private_flex_ini_format_id "$3")
+
+  local array_name
+  array_name=$(private_flex_ini_get_array_name "$ini_identifier")
 
   private_flex_ini_required "key" "$key" || return 1
   private_flex_ini_require_loaded "$ini_identifier" || return 1
@@ -317,12 +353,15 @@ flex_ini_update() {
 # that separately.
 flex_ini_delete() {
   local key="$1"
-  local ini_identifier=$(private_flex_ini_format_id "$2")
+  local ini_identifier
+  ini_identifier=$(private_flex_ini_format_id "$2")
 
   private_flex_ini_required "key" "$key" || return 1
   private_flex_ini_require_loaded "$ini_identifier" || return 1
 
-  local array_name=$(private_flex_ini_get_array_name "$ini_identifier")
+  local array_name
+  array_name=$(private_flex_ini_get_array_name "$ini_identifier")
+
   local assign_var='unset '$array_name'["'$key'"]'
   eval "$assign_var"
 
@@ -339,9 +378,12 @@ flex_ini_delete() {
 # If using the file you specified when you loaded the ini
 # config.
 flex_ini_save() {
-  local ini_identifier=$(private_flex_ini_format_id "$1")
+  local ini_identifier
+  ini_identifier=$(private_flex_ini_format_id "$1")
+
   local override_path="$2"
-  local default_destination_ini_path=$(private_get_ini_file_path "$ini_identifier")
+  local default_destination_ini_path
+  default_destination_ini_path=$(private_get_ini_file_path "$ini_identifier")
 
   private_flex_ini_require_loaded "$ini_identifier" || return 1
 
@@ -373,9 +415,15 @@ flex_ini_save() {
   # file and attempt to re-assign ownership when file is saved if
   # the current user is different from the owner of the file
   if [ "$reassign_file_permissions_when_possible" == "true" ]; then
-    local file_owner=$(stat --format '%U' "${destination_ini_path}")
-    local file_group=$(stat --format '%G' "${destination_ini_path}")
-    local current_user=$(echo "$USER")
+    local file_owner
+    file_owner=$(stat --format '%U' "${destination_ini_path}")
+
+    local file_group
+    file_group=$(stat --format '%G' "${destination_ini_path}")
+
+    local current_user
+    current_user=$(whoami)
+
     if [ "$file_owner" != "$current_user" ]; then
       local should_reassign_file_permissions=true
     fi
@@ -384,12 +432,15 @@ flex_ini_save() {
   local current_section=""
   local has_free_keys=false
 
-  local ini_file=$(mktemp "${tmp_directory}/flexini.XXXXXX")
+  local ini_file
+  ini_file=$(mktemp "${tmp_directory}/flexini.XXXXXX")
 
   for key in $(flex_ini_keys "$ini_identifier"); do
     [[ $key == *.* ]] && continue
     has_free_keys=true
-    local value=$(flex_ini_get "$key" "$ini_identifier")
+    local value
+    value=$(flex_ini_get "$key" "$ini_identifier")
+
     echo "$key = $value" >>"$ini_file"
   done
 
@@ -397,7 +448,9 @@ flex_ini_save() {
 
   for key in $(flex_ini_keys "$ini_identifier"); do
     [[ $key == *.* ]] || continue
-    local value=$(flex_ini_get "$key" "$ini_identifier")
+    local value
+    value=$(flex_ini_get "$key" "$ini_identifier")
+
     IFS="." read -r section_name key_name <<<"$key"
 
     if [[ "$current_section" != "$section_name" ]]; then
@@ -439,7 +492,8 @@ flex_ini_save() {
 # A helper function to initiate a save-as.
 flex_ini_save_as() {
   local override_path="$1"
-  local ini_identifier=$(private_flex_ini_format_id "$2")
+  local ini_identifier
+  ini_identifier=$(private_flex_ini_format_id "$2")
 
   private_flex_ini_require_loaded "$ini_identifier" || return 1
 
@@ -451,7 +505,9 @@ flex_ini_save_as() {
 # Returns 0 if the array has unsaved changes,
 # returns 1 if it does not.
 flex_ini_has_unsaved() {
-  local ini_identifier=$(private_flex_ini_format_id "$1")
+  local ini_identifier
+  ini_identifier=$(private_flex_ini_format_id "$1")
+
   
   private_flex_ini_require_loaded "$ini_identifier" || return 1
 
@@ -469,17 +525,19 @@ flex_ini_has_unsaved() {
 # Removes all data from the stores. Be careful with this one!
 flex_ini_reset() {
   for i in "${!ini_associations[@]}"; do
-    local array_name=$(private_flex_ini_get_array_name "$i")
+    local array_name
+    array_name=$(private_flex_ini_get_array_name "$i")
+
     unset "$array_name"
-    unset ini_associations["$i"]
+    unset 'ini_associations[$i]'
   done
 
   for i in "${!ini_unsaved_changes[@]}"; do
-    unset ini_unsaved_changes["$i"]
+    unset 'ini_unsaved_changes[$i]'
   done
 
   for i in "${!ini_loaded[@]}"; do
-    unset ini_loaded["$i"]
+    unset 'ini_loaded[$i]'
   done
 }
 
@@ -487,8 +545,8 @@ flex_ini_reset() {
 # --
 # Show all loaded key-value pairs (whether or not they've been saved).
 flex_ini_show() {
-  local ini_identifier=$(private_flex_ini_format_id "$1")
-  local file_path=$(private_get_ini_file_path "$ini_identifier")
+  local ini_identifier
+  ini_identifier=$(private_flex_ini_format_id "$1")
 
   private_flex_ini_require_loaded "$ini_identifier" || return 1
 
@@ -496,7 +554,8 @@ flex_ini_show() {
   echo "--"
 
   for key in $(flex_ini_keys "$ini_identifier"); do
-    local value=$(flex_ini_get "$key" "$ini_identifier")
+    local value
+    value=$(flex_ini_get "$key" "$ini_identifier")
     echo "$key = $value"
   done
 
@@ -508,12 +567,18 @@ flex_ini_show() {
 # Get an array of all keys in your ini array (whether or not they)
 # have been saved.
 flex_ini_keys() {
-  local ini_identifier=$(private_flex_ini_format_id "$1")
-  local array_name=$(private_flex_ini_get_array_name "$ini_identifier")
+  local ini_identifier
+  ini_identifier=$(private_flex_ini_format_id "$1")
+
+  local array_name
+  array_name=$(private_flex_ini_get_array_name "$ini_identifier")
 
   private_flex_ini_require_loaded "$ini_identifier" || return 1
 
+  # shellcheck disable=SC2016
   local name_var='${!'$array_name'[@]}'
+
+  # shellcheck disable=SC2207
   local keys=($(eval echo "$name_var"))
   for a in "${keys[@]}"; do echo "$a"; done | sort
 }
