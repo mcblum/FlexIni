@@ -395,18 +395,39 @@ flex_ini_save() {
 
   [[ "${has_free_keys}" == "true" ]] && echo >>"$ini_file"
 
+  # Collect all section names and sort them
+  declare -A sections
   for key in $(flex_ini_keys "$ini_identifier"); do
     [[ $key == *.* ]] || continue
-    local value=$(flex_ini_get "$key" "$ini_identifier")
     IFS="." read -r section_name key_name <<<"$key"
+    sections["$section_name"]=1
+  done
 
+  # Process sections in alphabetical order
+  for section_name in $(printf '%s\n' "${!sections[@]}" | sort); do
+    # Check if this is a new section
     if [[ "$current_section" != "$section_name" ]]; then
       [[ $current_section ]] && echo >>"$ini_file"
       echo "[$section_name]" >>"$ini_file"
       current_section="$section_name"
     fi
 
-    echo "$key_name = $value" >>"$ini_file"
+    # Collect and sort keys for this section only
+    section_keys=()  # Clear the array first
+    for key in $(flex_ini_keys "$ini_identifier"); do
+      [[ $key == *.* ]] || continue
+      IFS="." read -r current_section_name key_name <<<"$key"
+      if [[ "$current_section_name" == "$section_name" ]]; then
+        section_keys+=("$key")
+      fi
+    done
+
+    # Sort keys within this section and write them
+    for key in $(printf '%s\n' "${section_keys[@]}" | sort); do
+      IFS="." read -r key_section key_name <<<"$key"
+      local value=$(flex_ini_get "$key" "$ini_identifier")
+      echo "$key_name = $value" >>"$ini_file"
+    done
   done
 
   # Back up the destination ini file if specified
