@@ -36,7 +36,7 @@ if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
     echo "Error: FlexIni requires bash 4.0 or higher for associative arrays"
     echo "Current bash version: ${BASH_VERSION}"
     echo "On macOS, install newer bash with: brew install bash"
-    exit 1
+    return 1 2>/dev/null || exit 1
 fi
 
 declare -gA ini_associations
@@ -136,7 +136,7 @@ private_get_ini_file_path() {
   local ini_identifier=$(private_flex_ini_format_id "$1")
   local FILE_PATH="${ini_associations[$ini_identifier]}"
   if [ -z "$FILE_PATH" ]; then
-    log error "Error, no file associated with the ini id ${ini_identifier}"
+    private_flex_ini_error "no file associated with the ini id ${ini_identifier}"
     return 1
   fi
   echo "${FILE_PATH}"
@@ -223,7 +223,7 @@ flex_ini_reload() {
   local ini_identifier=$(private_flex_ini_format_id "$1")
   local destination_ini_path=$(private_get_ini_file_path "$ini_identifier")
   if [ -z "$destination_ini_path" ]; then
-    echo "[ Flex INI Error ] No INI filepath could be found from which to reload. Are you sure you loaded the config file for ${ini_identifier}?"
+    private_flex_ini_error "No INI filepath could be found from which to reload. Are you sure you loaded the config file for ${ini_identifier}?"
     return 1
   fi
   flex_ini_clear "$ini_identifier"
