@@ -9,9 +9,16 @@ back_up_changes_on_save=true
 back_up_changes_on_save_as=false
 reassign_file_permissions_when_possible=false
 tmp_directory="/tmp"
-declare -gA ini_associations
-declare -gA ini_unsaved_changes
-declare -gA ini_loaded
+# Check if declare supports -g flag (bash 4.2+)
+if declare -g test 2>/dev/null; then
+    declare -gA ini_associations
+    declare -gA ini_unsaved_changes
+    declare -gA ini_loaded
+else
+    declare -A ini_associations
+    declare -A ini_unsaved_changes
+    declare -A ini_loaded
+fi
 # Private Functions
 # --
 # It's best to not call/modify these directly from your codebase
@@ -120,7 +127,12 @@ private_flex_ini_init() {
   local ini_file="$1"
   local ini_identifier=$(private_flex_ini_format_id "$2")
   local ini=$(private_flex_ini_get_array_name "$ini_identifier")
-  declare -gA "$ini"
+  # Check if declare supports -g flag (bash 4.2+)
+  if declare -g test 2>/dev/null; then
+    declare -gA "$ini"
+  else
+    declare -A "$ini"
+  fi
   ini_associations["$ini_identifier"]="$ini_file"
 }
 # @private private_flex_ini_create

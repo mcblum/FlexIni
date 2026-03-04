@@ -5,7 +5,8 @@ test_flex_ini_keys() {
     flex_ini_update "testing" "two"
     flex_ini_update "tested" "three"
 
-    local res=($(flex_ini_keys))
+    local res
+    readarray -t res < <(flex_ini_keys)
     expect "${#res[@]}" 3
 
     expect_array_contains "test" "${res[@]}"
