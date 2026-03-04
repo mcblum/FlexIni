@@ -18,29 +18,17 @@ else
     _OS="unknown"
 fi
 
-# Check bash version and use appropriate declare syntax
-_BASH_VERSION=$(bash --version | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
-if [[ "${_BASH_VERSION%%.*}" -ge 4 ]]; then
-    # Bash 4.0+ supports associative arrays
-    if declare -g _test 2>/dev/null; then
-        # Bash 4.2+ supports -g flag
-        declare -gA ini_associations
-        declare -gA ini_unsaved_changes
-        declare -gA ini_loaded
-        _SUPPORTS_G_FLAG=true
-    else
-        # Bash 4.0-4.1 doesn't support -g flag
-        declare -A ini_associations
-        declare -A ini_unsaved_changes
-        declare -A ini_loaded
-        _SUPPORTS_G_FLAG=false
-    fi
-else
-    # Bash 3.x doesn't support associative arrays at all
+# Require bash 4.0+ for associative arrays
+if [[ "${BASH_VERSINFO[0]}" -lt 4 ]]; then
     echo "Error: FlexIni requires bash 4.0 or higher for associative arrays"
-    echo "Current bash version: $_BASH_VERSION"
+    echo "Current bash version: ${BASH_VERSION}"
+    echo "On macOS, install newer bash with: brew install bash"
     exit 1
 fi
+
+declare -gA ini_associations
+declare -gA ini_unsaved_changes
+declare -gA ini_loaded
 # Private Functions
 # --
 # It's best to not call/modify these directly from your codebase
@@ -149,12 +137,7 @@ private_flex_ini_init() {
   local ini_file="$1"
   local ini_identifier=$(private_flex_ini_format_id "$2")
   local ini=$(private_flex_ini_get_array_name "$ini_identifier")
-  # Use appropriate declare syntax based on bash version
-  if [ "$_SUPPORTS_G_FLAG" = "true" ]; then
-    declare -gA "$ini"
-  else
-    declare -A "$ini"
-  fi
+  declare -gA "$ini"
   ini_associations["$ini_identifier"]="$ini_file"
 }
 # @private private_flex_ini_create
