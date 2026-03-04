@@ -9,9 +9,21 @@ on:
       - main
 jobs:
   Test:
-    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
-      - run: ./tests/_run.sh
+      - name: Install newer bash on macOS
+        if: matrix.os == 'macos-latest'
+        run: brew install bash
+      - name: Run tests
+        run: |
+          if [[ "$(uname)" == "Darwin" ]]; then
+            /opt/homebrew/bin/bash ./tests/_run.sh
+          else
+            bash ./tests/_run.sh
+          fi
       - run: echo "🍏 This job's status is ${{ job.status }}."

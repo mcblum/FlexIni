@@ -6,8 +6,8 @@ echo ""
 
 test_suites=()
 cd $test_parent_dir/src
-for f in *; do
-    fn_name="${f/.sh/''}"
+for f in *.sh; do
+    fn_name="${f%.sh}"
     test_suites+=("$fn_name")
 done
 cd ../..
