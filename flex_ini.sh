@@ -9,9 +9,38 @@ back_up_changes_on_save=true
 back_up_changes_on_save_as=false
 reassign_file_permissions_when_possible=false
 tmp_directory="/tmp"
-declare -gA ini_associations
-declare -gA ini_unsaved_changes
-declare -gA ini_loaded
+# Detect the operating system
+if [[ "$(uname)" == "Darwin" ]]; then
+    _OS="macos"
+elif [[ "$(uname)" == "Linux" ]]; then
+    _OS="linux"
+else
+    _OS="unknown"
+fi
+
+# Check bash version and use appropriate declare syntax
+_BASH_VERSION=$(bash --version | head -1 | grep -oE '[0-9]+\.[0-9]+' | head -1)
+if [[ "${_BASH_VERSION%%.*}" -ge 4 ]]; then
+    # Bash 4.0+ supports associative arrays
+    if declare -g _test 2>/dev/null; then
+        # Bash 4.2+ supports -g flag
+        declare -gA ini_associations
+        declare -gA ini_unsaved_changes
+        declare -gA ini_loaded
+        _SUPPORTS_G_FLAG=true
+    else
+        # Bash 4.0-4.1 doesn't support -g flag
+        declare -A ini_associations
+        declare -A ini_unsaved_changes
+        declare -A ini_loaded
+        _SUPPORTS_G_FLAG=false
+    fi
+else
+    # Bash 3.x doesn't support associative arrays at all
+    echo "Error: FlexIni requires bash 4.0 or higher for associative arrays"
+    echo "Current bash version: $_BASH_VERSION"
+    exit 1
+fi
 # Private Functions
 # --
 # It's best to not call/modify these directly from your codebase
@@ -120,7 +149,12 @@ private_flex_ini_init() {
   local ini_file="$1"
   local ini_identifier=$(private_flex_ini_format_id "$2")
   local ini=$(private_flex_ini_get_array_name "$ini_identifier")
-  declare -gA "$ini"
+  # Use appropriate declare syntax based on bash version
+  if [ "$_SUPPORTS_G_FLAG" = "true" ]; then
+    declare -gA "$ini"
+  else
+    declare -A "$ini"
+  fi
   ini_associations["$ini_identifier"]="$ini_file"
 }
 # @private private_flex_ini_create
@@ -310,12 +344,14 @@ flex_ini_save() {
   # file and attempt to re-assign ownership when file is saved if
   # the current user is different from the owner of the file
   if [ "$reassign_file_permissions_when_possible" == "true" ]; then
-    if [[ "$(uname)" == "Darwin" ]]; then
+    if [ "$_OS" == "macos" ]; then
       local file_owner=$(stat -f '%Su' "${destination_ini_path}")
       local file_group=$(stat -f '%Sg' "${destination_ini_path}")
-    else
+    elif [ "$_OS" == "linux" ]; then
       local file_owner=$(stat --format '%U' "${destination_ini_path}")
       local file_group=$(stat --format '%G' "${destination_ini_path}")
+    else
+      echo "[ FlexIni Warning ] File permission reassignment not supported on $_OS"
     fi
     local current_user=$(echo "$USER")
     if [ "$file_owner" != "$current_user" ]; then

@@ -29,20 +29,22 @@ test_flex_ini_save_macos_compatibility() {
     local test_file="${test_storage_dir}/stat_test_$$"
     touch "$test_file"
     
-    if [[ "$(uname)" == "Darwin" ]]; then
+    if [ "$_OS" == "macos" ]; then
         # Test macOS stat commands
         local owner=$(stat -f '%Su' "$test_file")
         local group=$(stat -f '%Sg' "$test_file")
         echo "macOS stat: owner=$owner, group=$group"
         [[ -n "$owner" ]] || fail "macOS stat owner command failed"
         [[ -n "$group" ]] || fail "macOS stat group command failed"
-    else
+    elif [ "$_OS" == "linux" ]; then
         # Test Linux stat commands
         local owner=$(stat --format '%U' "$test_file")
         local group=$(stat --format '%G' "$test_file")
         echo "Linux stat: owner=$owner, group=$group"
         [[ -n "$owner" ]] || fail "Linux stat owner command failed"
         [[ -n "$group" ]] || fail "Linux stat group command failed"
+    else
+        echo "Unknown OS: $_OS - skipping stat command tests"
     fi
     
     # Clean up
