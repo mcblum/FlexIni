@@ -16,6 +16,8 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v4
+      - name: Check bash version
+        run: bash check_bash_version.sh
       - run: bash ./tests/_run.sh
         shell: bash
       - run: echo "🍏 This job's status is ${{ job.status }}."
