@@ -1,3 +1,16 @@
+#!/bin/bash
+# FlexIni - A flexible INI file parser and manager for Bash
+# 
+# Copyright 2026 Matt Blum
+# Licensed under the Apache License, Version 2.0
+# https://www.apache.org/licenses/LICENSE-2.0
+#
+# Author: Matt Blum
+# GitHub: https://github.com/mcblum
+# Email:  matt@mattblum.com
+#
+# For full license text, see the LICENSE file in the repository.
+
 # Defaults
 # --
 # You may change these here or overwrite them
