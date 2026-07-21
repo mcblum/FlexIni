@@ -94,6 +94,98 @@ setup() {
   run ! flex_ini_has_unsaved
 }
 
+@test "update_bulk accepts the name of an associative array" {
+  local f
+  f=$(create_ini)
+  flex_ini_load "$f"
+
+  declare -A changes=(
+    [alpha]="one"
+    [section.beta]="two"
+    [tricky]='he said "hi" $(id) *'
+  )
+  flex_ini_update_bulk "" changes
+
+  [ "$(flex_ini_get alpha)" = "one" ]
+  [ "$(flex_ini_get section.beta)" = "two" ]
+  [ "$(flex_ini_get tricky)" = 'he said "hi" $(id) *' ]
+  flex_ini_has_unsaved
+}
+
+@test "update_bulk array form works with a named id and survives a round trip" {
+  local f
+  f=$(create_ini)
+  flex_ini_load "$f" "bulk_id"
+
+  declare -A changes=([one.a]="1" [free]="2")
+  flex_ini_update_bulk "bulk_id" changes
+  flex_ini_save "bulk_id"
+  flex_ini_reset
+  flex_ini_load "$f" "bulk_id"
+
+  [ "$(flex_ini_get one.a bulk_id)" = "1" ]
+  [ "$(flex_ini_get free bulk_id)" = "2" ]
+}
+
+@test "update_bulk array form works even when the array is named like an internal local" {
+  local f
+  f=$(create_ini)
+  flex_ini_load "$f"
+
+  # 'pairs' would collide with an unprefixed local inside the library
+  declare -A pairs=([k]="v")
+  flex_ini_update_bulk "" pairs
+
+  [ "$(flex_ini_get k)" = "v" ]
+}
+
+@test "update_bulk rejects a single argument that is not an associative array" {
+  local f
+  f=$(create_ini)
+  flex_ini_load "$f"
+
+  run flex_ini_update_bulk "" "no_such_array"
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"not a declared associative array"* ]]
+
+  # A regular (indexed) array does not qualify either
+  declare -a indexed=(one two)
+  run flex_ini_update_bulk "" indexed
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"not a declared associative array"* ]]
+
+  # Names that are not plain identifiers are rejected outright
+  run flex_ini_update_bulk "" 'changes; touch /tmp/pwned'
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"not a declared associative array"* ]]
+}
+
+@test "update_bulk rejects an empty associative array" {
+  local f
+  f=$(create_ini)
+  flex_ini_load "$f"
+
+  declare -A empty_changes=()
+  run flex_ini_update_bulk "" empty_changes
+
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"has no entries"* ]]
+}
+
+@test "update_bulk array form with a bad key applies nothing" {
+  local f
+  f=$(create_ini)
+  flex_ini_load "$f"
+
+  declare -A changes=([good]="value" ["bad key"]="value")
+  run flex_ini_update_bulk "" changes
+  [ "$status" -eq 1 ]
+  [[ "$output" == *"invalid"* ]]
+
+  run ! flex_ini_has "good"
+  run ! flex_ini_has_unsaved
+}
+
 @test "update_bulk with auto_save_on_changes saves exactly once at the end" {
   local f
   f=$(create_ini)

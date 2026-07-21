@@ -82,6 +82,18 @@ The one deliberate exception: when `expand_values_on_load=true` (default
 `false`), values containing `$` are eval-expanded on load. That is a documented
 opt-in footgun; do not widen it.
 
+Two related rules when a *caller-supplied name* (not a key/value) must be
+interpolated into an eval expression, as in `flex_ini_update_bulk`'s
+associative-array form:
+
+1. Validate the name as a plain identifier first
+   (`private_flex_ini_is_assoc_array` does this) — otherwise the name itself
+   is an injection vector.
+2. Because bash scoping is dynamic, locals in the reading function can shadow
+   the caller's array (a local named `pairs` would hide a caller array named
+   `pairs`). Functions that read caller-named variables must prefix all their
+   locals (`_flexini_*`).
+
 ### Input constraints (enforced, do not relax)
 
 - Keys: no whitespace, no `=` (`private_flex_ini_validate_key`).

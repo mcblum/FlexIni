@@ -409,47 +409,94 @@ flex_ini_update() {
     private_flex_ini_mark_as_changed "$ini_identifier"
   fi
 }
+# @private private_flex_ini_is_assoc_array
+# --
+# Returns 0 if the given name refers to a declared associative array.
+# The name must be a plain identifier -- that check is also what makes
+# it safe to interpolate the name into an eval expression afterward.
+# Locals here are _flexini_-prefixed so they cannot shadow a caller's
+# array of the same name (bash scoping is dynamic).
+private_flex_ini_is_assoc_array() {
+  local _flexini_name="$1"
+  [[ $_flexini_name =~ ^[a-zA-Z_][a-zA-Z0-9_]*$ ]] || return 1
+  local _flexini_declaration
+  _flexini_declaration=$(declare -p "$_flexini_name" 2>/dev/null) || return 1
+  [[ $_flexini_declaration == "declare -A"* ]]
+}
 # @public flex_ini_update_bulk
 # --
 # Create or update several values in a single call. Unlike the other
-# public functions, the ini id comes FIRST (pass '' for the default id)
-# because the key/value pairs are variadic:
+# public functions, the ini id comes FIRST (pass '' for the default id).
+# The changes can be supplied either as variadic key/value pairs or as
+# the NAME of an associative array holding key -> value entries:
 #
 #   flex_ini_update_bulk "my_id" key1 value1 key2 value2 ...
+#
+#   declare -A changes=([key1]="value1" [section.key2]="value2")
+#   flex_ini_update_bulk "my_id" changes
 #
 # Every key and value is validated before anything is applied, so a bad
 # pair means no changes are made at all. When auto_save_on_changes is
 # enabled, the file is saved once at the end instead of once per pair.
+#
+# Locals are _flexini_-prefixed because bash scoping is dynamic: an
+# unprefixed local like 'pairs' would shadow a caller's array of the
+# same name and make it unreadable here.
 flex_ini_update_bulk() {
-  local ini_identifier
-  ini_identifier=$(private_flex_ini_format_id "$1")
+  local _flexini_ini_identifier
+  _flexini_ini_identifier=$(private_flex_ini_format_id "$1")
   shift
-  local array_name
-  array_name=$(private_flex_ini_get_array_name "$ini_identifier")
-  private_flex_ini_require_loaded "$ini_identifier" || return 1
+  local _flexini_array_name
+  _flexini_array_name=$(private_flex_ini_get_array_name "$_flexini_ini_identifier")
+  private_flex_ini_require_loaded "$_flexini_ini_identifier" || return 1
   if [ "$#" -eq 0 ]; then
-    private_flex_ini_error "at least one key/value pair is required"
+    private_flex_ini_error "at least one key/value pair (or the name of an associative array) is required"
     return 1
   fi
-  if [ $(($# % 2)) -ne 0 ]; then
-    private_flex_ini_error "bulk update expects key/value pairs, but received an odd number of arguments ($#)"
-    return 1
+  local _flexini_pairs=()
+  if [ "$#" -eq 1 ]; then
+    # A single argument is the name of an associative array of changes
+    local _flexini_source="$1"
+    if ! private_flex_ini_is_assoc_array "$_flexini_source"; then
+      private_flex_ini_error "bulk update expects key/value pairs or the name of an associative array, but '$_flexini_source' is not a declared associative array"
+      return 1
+    fi
+    local _flexini_source_keys=()
+    # _flexini_source is validated as a plain identifier above, so it
+    # is safe to interpolate; keys and values still only travel through
+    # eval as variable references.
+    eval "_flexini_source_keys=(\"\${!${_flexini_source}[@]}\")"
+    if [ "${#_flexini_source_keys[@]}" -eq 0 ]; then
+      private_flex_ini_error "the associative array '$_flexini_source' has no entries"
+      return 1
+    fi
+    local _flexini_k
+    local _flexini_v
+    for _flexini_k in "${_flexini_source_keys[@]}"; do
+      eval "_flexini_v=\"\${${_flexini_source}[\$_flexini_k]-}\""
+      _flexini_pairs+=("$_flexini_k" "$_flexini_v")
+    done
+  else
+    if [ $(($# % 2)) -ne 0 ]; then
+      private_flex_ini_error "bulk update expects key/value pairs, but received an odd number of arguments ($#)"
+      return 1
+    fi
+    _flexini_pairs=("$@")
   fi
-  local pairs=("$@")
-  local i
+  local _flexini_i
   # Validate everything up front so a bad pair means nothing is applied
-  for ((i = 0; i < ${#pairs[@]}; i += 2)); do
-    private_flex_ini_required "key" "${pairs[i]}" || return 1
-    private_flex_ini_validate_key "${pairs[i]}" || return 1
-    private_flex_ini_validate_value "${pairs[i + 1]}" || return 1
+  for ((_flexini_i = 0; _flexini_i < ${#_flexini_pairs[@]}; _flexini_i += 2)); do
+    private_flex_ini_required "key" "${_flexini_pairs[_flexini_i]}" || return 1
+    private_flex_ini_validate_key "${_flexini_pairs[_flexini_i]}" || return 1
+    private_flex_ini_validate_value "${_flexini_pairs[_flexini_i + 1]}" || return 1
   done
-  for ((i = 0; i < ${#pairs[@]}; i += 2)); do
-    private_flex_ini_set "$array_name" "${pairs[i]}" "${pairs[i + 1]}" || return 1
+  for ((_flexini_i = 0; _flexini_i < ${#_flexini_pairs[@]}; _flexini_i += 2)); do
+    private_flex_ini_set "$_flexini_array_name" "${_flexini_pairs[_flexini_i]}" "${_flexini_pairs[_flexini_i + 1]}" || return 1
   done
   if [ "$auto_save_on_changes" == "true" ]; then
-    flex_ini_save "$ini_identifier"
+    flex_ini_save "$_flexini_ini_identifier"
   else
-    private_flex_ini_mark_as_changed "$ini_identifier"
+    private_flex_ini_mark_as_changed "$_flexini_ini_identifier"
   fi
 }
 # @public flex_ini_delete

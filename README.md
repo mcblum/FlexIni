@@ -70,15 +70,29 @@ Keys may not contain whitespace or `=`, and values may not contain newlines — 
 
 ### Create/update several values at once (bulk update):
 
-Unlike the other functions, the ini id comes *first* here (pass `""` for the default id), because the key/value pairs are variadic.
+Unlike the other functions, the ini id comes *first* here (pass `""` for the default id), because the changes are variadic.
 All pairs are validated before anything is applied, so a bad pair means no changes at all.
 If `auto_save_on_changes` is enabled, the file is saved once at the end rather than once per pair.
+
+You can pass the changes as key/value pairs:
 
 ```
 flex_ini_update_bulk "your_ini_id" \
   "your.key" "the value" \
   "another.key" "another value"
 ```
+
+Or, usually easier to read and harder to misalign, as the *name* of an associative array:
+
+```
+declare -A changes=(
+  [your.key]="the value"
+  [another.key]="another value"
+)
+flex_ini_update_bulk "your_ini_id" changes
+```
+
+Note that you pass the array's name (`changes`), not its contents (`"${changes[@]}"` would be treated as key/value pairs — which also works, but only until a value is empty or contains characters that confuse the pairing).
 
 ### Delete a value (and save):
 
