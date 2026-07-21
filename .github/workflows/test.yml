@@ -8,8 +8,9 @@ on:
     branches:
       - main
 jobs:
-  Test:
+  test:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
     runs-on: ${{ matrix.os }}
@@ -17,13 +18,22 @@ jobs:
       - name: Check out repository code
         uses: actions/checkout@v4
       - name: Install newer bash on macOS
-        if: matrix.os == 'macos-latest'
+        if: runner.os == 'macOS'
         run: brew install bash
+      - name: Install bats-core
+        run: git clone --depth 1 --branch v1.11.0 https://github.com/bats-core/bats-core.git "$RUNNER_TEMP/bats-core"
+      - name: Show bash version
+        run: bash --version
       - name: Run tests
-        run: |
-          if [[ "$(uname)" == "Darwin" ]]; then
-            /opt/homebrew/bin/bash ./tests/_run.sh
-          else
-            bash ./tests/_run.sh
-          fi
-      - run: echo "🍏 This job's status is ${{ job.status }}."
+        run: "$RUNNER_TEMP/bats-core/bin/bats" --print-output-on-failure tests
+  shellcheck:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      # Pinned release download: bats support requires shellcheck 0.10+,
+      # which is newer than what the runner and apt provide
+      - name: Install shellcheck
+        run: wget -qO- "https://github.com/koalaman/shellcheck/releases/download/v0.11.0/shellcheck-v0.11.0.linux.x86_64.tar.xz" | tar -xJ -C "$RUNNER_TEMP"
+      - name: Run shellcheck
+        run: "$RUNNER_TEMP/shellcheck-v0.11.0/shellcheck" flex_ini.sh tests/test_helper.bash tests/*.bats

@@ -66,6 +66,20 @@ flex_ini_update "your.key" "the value" "your_ini_id"
 flex_ini_save "your_ini_id"
 ```
 
+Keys may not contain whitespace or `=`, and values may not contain newlines — either would corrupt the file on save, so FlexIni rejects them up front.
+
+### Create/update several values at once (bulk update):
+
+Unlike the other functions, the ini id comes *first* here (pass `""` for the default id), because the key/value pairs are variadic.
+All pairs are validated before anything is applied, so a bad pair means no changes at all.
+If `auto_save_on_changes` is enabled, the file is saved once at the end rather than once per pair.
+
+```
+flex_ini_update_bulk "your_ini_id" \
+  "your.key" "the value" \
+  "another.key" "another value"
+```
+
 ### Delete a value (and save):
 
 ```
@@ -80,6 +94,10 @@ flex_ini_save "your_ini_id"
 ```
 flex_ini_save "your_ini_id"
 ```
+
+Saving preserves the comments, blank lines, and key order of the existing file.
+Updated keys are rewritten in place, new keys are appended to the end of their section, deleted keys are dropped, and brand-new sections are added alphabetically at the end of the file.
+Key lines are normalized to `key = value` spacing.
 
 ### Save your ini values to a different file (save as):
 
@@ -127,8 +145,8 @@ auto_create_ini_on_load=true
 ### Auto-save on changes
 
 This setting affects whether any change operations will also trigger a save operation.
-This can be helpful in cases where you know you're going to be updating only a setting or two, but should be avoided in the case where you are going to be doing tons and tons of updates.
-This will be less critical when the bulk update feature is ready.
+This can be helpful in cases where you know you're going to be updating only a setting or two, but should be avoided in the case where you are going to be doing tons and tons of single updates.
+If you have many values to change, pair this setting with `flex_ini_update_bulk`, which saves once at the end of the batch instead of once per change.
 
 ```
 auto_save_on_changes=false
@@ -152,6 +170,16 @@ By default, the file you specify during a save-as operation isn't backed up if i
 back_up_changes_on_save_as=false
 ```
 
+### Expand values on load
+
+By default, values are loaded exactly as they appear in the ini file — a value like `$HOME` stays the literal string `$HOME`.
+If you enable this setting, values containing `$` are run through the shell on load so variable references get expanded.
+Only enable this for ini files you fully trust: expansion uses `eval`, so a malicious value like `$(some command)` would be executed by your script.
+
+```
+expand_values_on_load=false
+```
+
 ### Reassign file permissions when possible
 
 Sometimes you might need to run FlexIni as root but you may want to keep the file permissions of the ini the same.
@@ -167,4 +195,22 @@ This allows you to override the directory used to store the temp files we make b
 
 ```
 tmp_directory="/tmp"
+```
+
+# Requirements
+
+FlexIni requires bash 4.0 or higher (it uses associative arrays).
+macOS ships with bash 3.2, so on a Mac you'll want `brew install bash` first.
+
+# Testing
+
+The test suite uses [bats-core](https://github.com/bats-core/bats-core) (1.5.0+) and runs in GitHub Actions on both Ubuntu and macOS, alongside a [shellcheck](https://www.shellcheck.net/) (0.10+) lint job.
+To run both locally:
+
+```
+# Install the tools first, e.g.:
+brew install bats-core shellcheck   # macOS
+
+bats tests
+shellcheck flex_ini.sh tests/test_helper.bash tests/*.bats
 ```

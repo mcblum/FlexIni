@@ -1,0 +1,5 @@
+# The bats test files are checked standalone, so variables that are
+# defined in flex_ini.sh (settings globals, state arrays) look unused
+# or unassigned to shellcheck. Single-quoted $ literals are intentional
+# in tests that assert values are NOT expanded.
+disable=SC2034,SC2154,SC2016,SC1091
