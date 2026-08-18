@@ -82,13 +82,56 @@ EOF
 @test "load expands variables when expand_values_on_load is enabled" {
   local f
   f=$(create_ini)
-  export FLEXINI_TEST_VAR="expanded"
-  printf 'var = $FLEXINI_TEST_VAR\n' >"$f"
+  FLEXINI_TEST_VAR="expanded"
+  printf 'var = $FLEXINI_TEST_VAR\nbraced = ${FLEXINI_TEST_VAR}\n' >"$f"
 
   expand_values_on_load=true
   flex_ini_load "$f"
 
   [ "$(flex_ini_get var)" = "expanded" ]
+  [ "$(flex_ini_get braced)" = "expanded" ]
+}
+
+@test "expand_values_on_load expands variables embedded in surrounding text" {
+  local f
+  f=$(create_ini)
+  FLEXINI_TEST_VAR="mid"
+  printf 'path = pre-${FLEXINI_TEST_VAR}-post/$FLEXINI_TEST_VAR\n' >"$f"
+
+  expand_values_on_load=true
+  flex_ini_load "$f"
+
+  [ "$(flex_ini_get path)" = "pre-mid-post/mid" ]
+}
+
+@test "expand_values_on_load leaves undefined variables empty and bare dollars literal" {
+  local f
+  f=$(create_ini)
+  unset FLEXINI_UNDEFINED_VAR
+  printf 'gone = [$FLEXINI_UNDEFINED_VAR]\nprice = 100$ each\n' >"$f"
+
+  expand_values_on_load=true
+  flex_ini_load "$f"
+
+  [ "$(flex_ini_get gone)" = "[]" ]
+  [ "$(flex_ini_get price)" = '100$ each' ]
+}
+
+@test "expand_values_on_load never executes command substitution" {
+  local f
+  f=$(create_ini)
+  local canary="$BATS_TEST_TMPDIR/expand_pwned"
+  # A command substitution planted in a value must be treated as literal
+  # text, not run, even with expansion enabled.
+  printf 'cmd = x$(touch %s)x\ntick = `touch %s`\nnested = ${FLEXINI_TEST_VAR:-$(touch %s)}\n' \
+    "$canary" "$canary" "$canary" >"$f"
+
+  expand_values_on_load=true
+  flex_ini_load "$f"
+
+  [ ! -e "$canary" ]
+  [ "$(flex_ini_get cmd)" = 'x$(touch '"$canary"')x' ]
+  [ "$(flex_ini_get tick)" = '`touch '"$canary"'`' ]
 }
 
 @test "load auto-creates a missing file when auto_create_ini_on_load is true" {

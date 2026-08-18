@@ -187,8 +187,8 @@ back_up_changes_on_save_as=false
 ### Expand values on load
 
 By default, values are loaded exactly as they appear in the ini file — a value like `$HOME` stays the literal string `$HOME`.
-If you enable this setting, values containing `$` are run through the shell on load so variable references get expanded.
-Only enable this for ini files you fully trust: expansion uses `eval`, so a malicious value like `$(some command)` would be executed by your script.
+If you enable this setting, shell variable references (`$VAR` and `${VAR}`) in values are expanded from the current environment on load.
+Expansion is done with plain bash parameter expansion and never `eval`, so command substitutions (`$(some command)` and backticks) are left as literal text and are never executed — only variable references are substituted. Undefined variables expand to an empty string.
 
 ```
 expand_values_on_load=false

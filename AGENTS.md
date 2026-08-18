@@ -78,9 +78,14 @@ Use the existing helpers (`private_flex_ini_set`, and the patterns in
 expressions. There are regression tests that feed `$(...)`, backticks, quotes,
 and globs through every path — they must stay literal.
 
-The one deliberate exception: when `expand_values_on_load=true` (default
-`false`), values containing `$` are eval-expanded on load. That is a documented
-opt-in footgun; do not widen it.
+When `expand_values_on_load=true` (default `false`), values containing `$`
+have their variable references (`$VAR`/`${VAR}`) expanded on load by
+`private_flex_ini_expand_value`. That helper uses plain bash parameter
+expansion (indirect `${!name}`) and deliberately **never** `eval`s the value:
+command substitution (`$(...)`, backticks) and every other shell construct are
+left as literal text and cannot execute. Do not "simplify" this back into
+`eval "value=\"$value\""` — that reintroduces a command-injection sink
+(CWE-78/CWE-95) on any untrusted ini file.
 
 Two related rules when a *caller-supplied name* (not a key/value) must be
 interpolated into an eval expression, as in `flex_ini_update_bulk`'s
