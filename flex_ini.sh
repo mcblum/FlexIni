@@ -21,10 +21,11 @@ auto_save_on_changes=false
 back_up_changes_on_save=true
 back_up_changes_on_save_as=false
 reassign_file_permissions_when_possible=false
-# When true, values containing '$' are run through the shell on load so
-# variable references get expanded. Leave this off unless you fully trust
-# every ini file you load: expansion uses eval, so a value like
-# "$(some command)" would be executed.
+# When true, shell variable references ($VAR and ${VAR}) in values are
+# expanded on load from the current environment. Expansion is done with
+# plain bash parameter expansion, never eval, so command substitution and
+# backticks (e.g. "$(some command)" or `some command`) are left as literal
+# text and can never be executed. Undefined variables expand to nothing.
 expand_values_on_load=false
 tmp_directory="/tmp"
 # Detect the operating system
@@ -192,6 +193,37 @@ private_flex_ini_create() {
   private_flex_ini_required "ini_file" "$ini_file" || return 1
   touch "$ini_file" || return 1
 }
+# @private private_flex_ini_expand_value
+# --
+# Expand shell variable references ($VAR and ${VAR}) in a value using the
+# current environment. This deliberately does NOT use eval or command
+# substitution: command substitutions ($(...) and backticks) and every
+# other shell construct are left untouched as literal text, so a value
+# from an untrusted ini file can never be executed as code. Undefined
+# variables expand to the empty string, matching normal shell behavior.
+# The expanded value is written to the global _flexini_expanded.
+private_flex_ini_expand_value() {
+  local _value="$1"
+  local _out=""
+  local _rest="$_value"
+  # Only referenced variable NAMES are ever substituted; the value's own
+  # characters are never re-parsed by the shell.
+  local _re='^([^$]*)[$]([{]([a-zA-Z_][a-zA-Z0-9_]*)[}]|([a-zA-Z_][a-zA-Z0-9_]*))(.*)$'
+  while [[ $_rest =~ $_re ]]; do
+    local _prefix="${BASH_REMATCH[1]}"
+    local _braced_name="${BASH_REMATCH[3]}"
+    local _bare_name="${BASH_REMATCH[4]}"
+    local _tail="${BASH_REMATCH[5]}"
+    local _name="${_braced_name:-$_bare_name}"
+    # Indirect expansion by name only -- the referenced variable's own
+    # contents are never interpreted, only substituted in as data.
+    _out+="${_prefix}${!_name-}"
+    _rest="$_tail"
+  done
+  # A bare '$' not forming a valid reference (and any trailing text) is
+  # kept verbatim.
+  _flexini_expanded="${_out}${_rest}"
+}
 # @private private_flex_ini_set
 # --
 # Assign a value to a key inside the named associative array.
@@ -319,7 +351,11 @@ flex_ini_load() {
       # trim trailing whitespace from the value
       value="${value%"${value##*[![:space:]]}"}"
       if [ "$expand_values_on_load" == "true" ] && [[ $value == *\$* ]]; then
-        eval "value=\"$value\""
+        # Safe, eval-free variable expansion: command substitution and
+        # backticks are left as literal text (see the helper).
+        local _flexini_expanded=""
+        private_flex_ini_expand_value "$value"
+        value="$_flexini_expanded"
       fi
       private_flex_ini_set "$ini" "${section}${key}" "$value"
     fi
